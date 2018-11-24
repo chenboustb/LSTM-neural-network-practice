@@ -1,4 +1,11 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import tensorflow as tf
 import collections
+import datetime
+import os
+import sys
 
 def read_poems(poems_file='data/poems.txt'):
     poems=[]
@@ -25,8 +32,8 @@ def read_poems(poems_file='data/poems.txt'):
                 pass
     #对长度进行排序
     poems=sorted(poems,key=lambda x:len(x))
-    print(len(poems))
-    print(poems)
+    #print(len(poems))
+    #print(poems)
     words=[]
     #分离成字符
     for poem in poems:
@@ -46,9 +53,46 @@ def read_poems(poems_file='data/poems.txt'):
     id_to_word=dict(zip(word_to_id.values(),word_to_id.keys()))
     #生成诗的向量，把所有诗的每一个字符都用特定的数字表示
     poems_vec=[[word_to_id[word] for word in poem] for poem in poems]
-    print(poems_vec)
+    #print(poems_vec)
     #返回诗向量和两个字典
     return poems_vec,word_to_id,id_to_word
 
+
+
 if __name__=='__main__':
-    read_poems()
+    poems_vec,word_to_id,id_to_word=read_poems()
+    #筛选出空格代表的数字
+    space=word_to_id.get(' ')
+    batch_size=64
+    #print(space)
+    input_size=output_size=len(word_to_id)
+    X=tf.placeholder(tf.int32,[batch_size,None])
+    Y=tf.placeholder(tf.int32,[batch_size,None])
+
+    model_name='LSTM'
+    rnn_size=128
+    layer_num=2
+
+    cell_fun=tf.nn.rnn_cell.BasicLSTMCell
+    cell=cell_fun(rnn_size,state_is_tuple=True)
+
+    lstm_layers=tf.nn.rnn_cell.MultiRNNCell([cell]*layer_num,state_is_tuple=True)
+    initial_state=lstm_layers.zero_state(batch_size,tf.float32)
+
+    #创建一个变量域
+    with tf.variable_scope('lstm'):
+        scale=tf.sqrt(3/((rnn_size+output_size)*0.5))
+        w=tf.get_variable('w',[rnn_size,output_size],
+                          initializer=tf.random_uniform_initializer(-scale,scale))
+        b=tf.get_variable('b',[output_size],
+                          initializer=tf.random_uniform_initializer(-scale,scale))
+        with tf.device('/cpu:0'):
+            embedding=tf.get_variable('embedding',[input_size,rnn_size])
+            inputs=tf.nn.embedding_lookup(embedding,X)
+    
+    outputs,last_state=tf.nn.dynamic_rnn(layer_num,inputs,
+                                         initial_state=initial_state,scope='lstm')
+    logists=tf.matmul(outputs,[-1,rnn_size])
+    pred=tf.nn.softmax(logits=logists)
+
+    #logists,last_state,pred,initial_state
