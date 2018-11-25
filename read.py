@@ -114,14 +114,14 @@ def model(input_data,output_data,word_size):
     outs['mean_loss']=mean_loss
     outs['loss']=loss
     outs['last_state']=last_state
-    outs['train'] = opti
+    outs['train']=opti
 
     return outs
 
 
 def train():
 
-    epochs=50
+    epochs=100
 
     poems_vec, word_to_id, id_to_word = read_poems()
     x_batch, y_batch = create_batch(batch_size=64, poems_vec=poems_vec, word_to_id=word_to_id)
@@ -197,6 +197,15 @@ def predict(input_data,word_size):
     return outs
 
 
+def converse(pred,id_to_word):
+    t=np.cumsum(pred)
+    s=np.sum(pred)
+    sample=int(np.searchsorted(t,np.random.rand(1)*s))
+    if sample>len(id_to_word):
+        sample=len(id_to_word)-1
+    return id_to_word[sample]
+
+
 def write(begin_word):
 
     batch_size=1
@@ -207,6 +216,37 @@ def write(begin_word):
 
     outs=predict(input_data=input_data,word_size=len(id_to_word))
 
+    saver=tf.train.Saver(tf.global_variables())
+    init=tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+
+    with tf.Session() as sess:
+        sess.run(init)
+
+        checkpoint=tf.train.latest_checkpoint('model/')
+        saver.restore(sess,checkpoint)
+
+        x = np.array([list(map(word_to_id.get, '['))])
+        [pred,last_state]=sess.run([outs['pred'],outs['last_state']],
+                                   feed_dict={input_data:x})
+        if begin_word:
+            word=begin_word
+        else:
+            word=converse(pred,id_to_word)
+
+        poem=''
+        while word!=']':
+            poem+=word
+            x=np.zeros((1,1))
+            x[0,0]=word_to_id.get(word)
+            x = np.array([list(map(word_to_id.get, '['))])
+            [pred, last_state] = sess.run([outs['pred'], outs['last_state']],
+                            feed_dict={input_data:x,outs['initial_state']:last_state})
+            word=converse(pred,id_to_word)
+        return poem
+
 
 if __name__=='__main__':
     train()
+    # begin_word=str(input())
+    # poem=write(begin_word)
+    # print(poem)

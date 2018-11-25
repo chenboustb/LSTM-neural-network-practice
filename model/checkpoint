@@ -1,2 +1,6 @@
-model_checkpoint_path: "model_prefix-5"
-all_model_checkpoint_paths: "model_prefix-5"
+model_checkpoint_path: "model_prefix-25"
+all_model_checkpoint_paths: "model_prefix-6"
+all_model_checkpoint_paths: "model_prefix-12"
+all_model_checkpoint_paths: "model_prefix-18"
+all_model_checkpoint_paths: "model_prefix-24"
+all_model_checkpoint_paths: "model_prefix-25"
