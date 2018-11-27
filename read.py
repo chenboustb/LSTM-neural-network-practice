@@ -127,7 +127,6 @@ def train():
     x_batch, y_batch = create_batch(batch_size=64, poems_vec=poems_vec, word_to_id=word_to_id)
 
     batch_size = 64
-    learning_rate = 0.01
 
     poems_vec, word_to_id, id_to_word = read_poems()
     input_data=tf.placeholder(tf.int32,[batch_size,None])
@@ -238,7 +237,6 @@ def write(begin_word):
             poem+=word
             x=np.zeros((1,1))
             x[0,0]=word_to_id.get(word)
-            x = np.array([list(map(word_to_id.get, '['))])
             [pred, last_state] = sess.run([outs['pred'], outs['last_state']],
                             feed_dict={input_data:x,outs['initial_state']:last_state})
             word=converse(pred,id_to_word)
@@ -246,7 +244,8 @@ def write(begin_word):
 
 
 if __name__=='__main__':
-    train()
-    # begin_word=str(input())
-    # poem=write(begin_word)
-    # print(poem)
+    # train()
+    begin_word=str(input())
+    poem=write(begin_word)
+    print(poem)
+    print(len(poem))
